@@ -19,15 +19,50 @@ repository names along with registry credentials. Container Builder will
 automatically detect all stages in your builds and cache them
 appropriately by pushing them to another image repository.
 
+## Usage
+
+The following snippet is an example GitHub workflow (e.g.
+`.github/workflows/main.yml`) which automatically builds a `Dockerfile`
+in the repository root, caching all stages on GitHub Package Registry
+while having the final images on the official Docker Registry:
+
+```yaml
+name: Container Builder
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  container-builder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Build container image
+        uses: snapserv/action-container-builder@master
+        with:
+          target_image: my-user/my-image
+          target_registry_username: {{ secrets.DOCKER_REGISTRY_USERNAME }}
+          target_registry_password: {{ secrets.DOCKER_REGISTRY_PASSWORD }}
+          cache_image: docker.pkg.github.com/${{ github.repo }}/my-image
+          cache_registry_username: ${{ github.repository_owner }}
+          cache_registry_password: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Please make sure to use `actions/checkout` before this action, as
+otherwise Container Builder will be unable to build your image.
+
 ## Configuration
 
 ### Build Phase
 
 - `target_image`: Specifies the desired repository name for the
   container image which is being built by this action, e.g.
-  `my.docker.registry/glados/companion-cube`. While you must specify a
-  fully-qualified image repository including the server and namespace,
-  you shall **not** specify a tag.
+  `my-user/my-image` or `my.docker.registry/my-user/my-image`. While you
+  must specify a fully-qualified image repository including the server
+  and namespace, you shall **not** specify a tag.
 
 - `target_registry_username`: Specifies the username for authenticating
   against the registry used by `target_image`. Consult the documentation
