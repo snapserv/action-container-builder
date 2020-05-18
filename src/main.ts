@@ -16,7 +16,7 @@ class ContainerBuilder {
 
   constructor() {
     this.docker = new Docker();
-    this.buildContext = core.getInput('build_context', { required: true });
+    this.buildContext = core.getInput('build_context') || '.';
     this.buildDockerfile = path.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
 
     this.targetImage = core.getInput('target_image', { required: true });

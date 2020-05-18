@@ -9694,7 +9694,7 @@ const path_1 = __importDefault(__webpack_require__(622));
 class ContainerBuilder {
     constructor() {
         this.docker = new docker_1.Docker();
-        this.buildContext = core.getInput('build_context', { required: true });
+        this.buildContext = core.getInput('build_context') || '.';
         this.buildDockerfile = path_1.default.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
         this.targetImage = core.getInput('target_image', { required: true });
         this.targetAuth = {
