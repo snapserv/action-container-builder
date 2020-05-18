@@ -1,0 +1,24 @@
+name: AutoTagBot
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - package.json
+
+jobs:
+  auto-tag-bot:
+    name: AutoTagBot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Release new versions using TagBot
+        uses: snapserv/action-autotagbot@master
+        with:
+          api_token: '${{ secrets.GITHUB_TOKEN }}'
+          source_file: 'package.json'
+          version_pattern: '"version"\s*:\s*"(?<version>[0-9.]+)"'
+          tag_format: 'v{version}'
