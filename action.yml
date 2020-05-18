@@ -1,0 +1,36 @@
+name: Container Builder
+description: Builds container images using Docker in a reliable and efficient way
+author: Pascal Mathis
+inputs:
+  build_context:
+    description: Path to build context, relative to repository
+    default: .
+    required: false
+  build_dockerfile:
+    description: Path to Dockerfile, relative to repository
+    default: Dockerfile
+    required: false
+  target_image:
+    description: Desired image repository built by this action, do not specify a tag
+    required: true
+  target_registry_username:
+    description: Username for build artifact registry
+    required: true
+  target_registry_password:
+    description: Password for build artifact registry
+    required: true
+  cache_image:
+    description: Desired cache image repository, defaults to suffix '-caches'
+    required: false
+  cache_registry_username:
+    description: Username for cache registry, defaults to credentials of build artifact registry
+    required: false
+  cache_registry_password:
+    description: Password for cache registry, defaults to credentials of build artifact registry
+    required: false
+runs:
+  using: node12
+  main: dist/index.js
+branding:
+  icon: package
+  color: green

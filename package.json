@@ -1,0 +1,41 @@
+{
+  "name": "action-container-builder",
+  "version": "0.0.0",
+  "description": "Builds container images using Docker in a reliable and efficient way",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc && ncc build",
+    "start": "npm run build && node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snapserv/action-container-builder"
+  },
+  "keywords": [
+    "github",
+    "package",
+    "registry",
+    "docker",
+    "cache",
+    "build",
+    "push",
+    "image",
+    "container"
+  ],
+  "author": "Pascal Mathis",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@actions/core": "^1.2.4",
+    "@actions/github": "^2.2.0",
+    "dockerode": "^3.2.0",
+    "fast-glob": "^3.2.2",
+    "tar-fs": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^2.5.28",
+    "@types/node": "^14.0.1",
+    "@types/tar-fs": "^2.0.0",
+    "@zeit/ncc": "^0.22.1",
+    "typescript": "^3.9.2"
+  }
+}
