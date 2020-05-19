@@ -1,6 +1,8 @@
 import { AuthData, Docker, TaggedImages } from './docker';
+import { parseBool } from './utils';
 import * as core from '@actions/core';
 import path from 'path';
+import { context } from '@actions/github';
 
 type ImageHashes = { [name: string]: string }
 
@@ -13,6 +15,10 @@ class ContainerBuilder {
   private readonly targetAuth: AuthData;
   private readonly cacheImage: string;
   private readonly cacheAuth: AuthData;
+
+  private readonly staticTags: string[];
+  private readonly tagWithRef: boolean;
+  private readonly tagWithSHA: boolean;
 
   constructor() {
     this.docker = new Docker();
@@ -30,6 +36,10 @@ class ContainerBuilder {
       username: core.getInput('cache_registry_username') || this.targetAuth.username,
       password: core.getInput('cache_registry_password') || this.targetAuth.password,
     };
+
+    this.staticTags = (core.getInput('tags') || 'latest').split(',');
+    this.tagWithRef = parseBool(core.getInput('tag_with_ref') || 'false');
+    this.tagWithSHA = parseBool(core.getInput('tag_with_sha') || 'false');
   }
 
   async run() {
@@ -37,6 +47,7 @@ class ContainerBuilder {
     const newImages = await this.assembleImage(stageCache);
     await this.pushCachedStages(newImages);
     await this.cleanCachedStages(stageCache, newImages);
+    const taggedImages = await this.buildTargetImage(newImages);
   }
 
   private async pullCachedStages(): Promise<TaggedImages> {
@@ -105,6 +116,36 @@ class ContainerBuilder {
         await this.docker.unpublishImage(`${this.cacheImage}:${tag}`, { auth: this.cacheAuth });
       }
     }
+  }
+
+  private async buildTargetImage(newImages: ImageHashes): Promise<string[]> {
+    // Attempt to find output image of final stage
+    const finalImageName = `${this.cacheImage}:final`;
+    const finalImage = newImages[finalImageName];
+    if (!finalImage) throw new Error(`Could not final image build: ${finalImageName}`);
+
+    // Prepare list of desired image tags
+    const desiredTags = [...this.staticTags];
+
+    // Add tag with Git commit hash
+    if (this.tagWithSHA && context.sha) {
+      desiredTags.push(context.sha);
+    }
+
+    // Add tag with Git reference
+    if (this.tagWithRef && context.ref) {
+      // TODO: Git reference parsing
+    }
+
+    // Tag final image with all desired tags
+    const taggedImages = [];
+    for (const tag of desiredTags) {
+      core.debug(`Tagging final image as [${this.targetImage}:${tag}]...`);
+      taggedImages.push(`${this.targetImage}:${tag}`);
+      await this.docker.tagImage(finalImage, this.targetImage, tag);
+    }
+
+    return taggedImages;
   }
 }
 
