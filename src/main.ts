@@ -131,7 +131,8 @@ class ContainerBuilder {
     // Add tag with Git commit hash
     if (this.tagWithSHA && context.sha) {
       if (context.sha.length >= 7) {
-        desiredTags.push(context.sha.substring(0, 7));
+        const shortSHA = context.sha.substring(0, 7);
+        desiredTags.push(`sha-${shortSHA}`);
       }
     }
 

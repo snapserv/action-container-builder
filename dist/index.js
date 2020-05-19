@@ -11481,6 +11481,7 @@ class ContainerBuilder {
             yield this.pushCachedStages(newImages);
             yield this.cleanCachedStages(stageCache, newImages);
             const taggedImages = yield this.buildTargetImage(newImages);
+            yield this.publishImages(taggedImages);
         });
     }
     pullCachedStages() {
@@ -11559,7 +11560,8 @@ class ContainerBuilder {
             // Add tag with Git commit hash
             if (this.tagWithSHA && github_1.context.sha) {
                 if (github_1.context.sha.length >= 7) {
-                    desiredTags.push(github_1.context.sha.substring(0, 7));
+                    const shortSHA = github_1.context.sha.substring(0, 7);
+                    desiredTags.push(`sha-${shortSHA}`);
                 }
             }
             // Add tag with Git reference
@@ -11588,6 +11590,14 @@ class ContainerBuilder {
                 yield this.docker.tagImage(finalImage, this.targetImage, tag);
             }
             return taggedImages;
+        });
+    }
+    publishImages(images) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (const image of images) {
+                core.info(`Pushing image [${image}] to registry...`);
+                yield this.docker.pushImage(image, { auth: this.targetAuth });
+            }
         });
     }
 }
