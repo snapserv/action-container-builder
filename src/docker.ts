@@ -248,14 +248,13 @@ export class Docker {
         if (!data.stream) return;
 
         const output = previousLine + data.stream.toString();
-        const lines = output
-          .replace(/(\r\n|\r|\n)+/gm, '\n') // Normalize newlines
-          .trim().split('\n') // Trim and split by newline
-          .map((line: string) => line.trim()) // Trim each line as well
-          .filter(Boolean); // Remove empty lines from array
-
+        const lines = output.replace(/(\r\n|\r|\n)+/gm, '\n').split('\n');
         previousLine = lines.pop() || '';
-        lines.map((line: string) => core.debug(`stream output: ${line}`)); // Output each line
+
+        lines
+          .map(line => line.trim()) // Trim each line
+          .filter(Boolean) // Remove empty lines from output
+          .map((line: string) => core.debug(`stream output: ${line}`)); // Output each line
       });
     });
   }
