@@ -48,6 +48,7 @@ class ContainerBuilder {
     await this.pushCachedStages(newImages);
     await this.cleanCachedStages(stageCache, newImages);
     const taggedImages = await this.buildTargetImage(newImages);
+    await this.publishImages(taggedImages);
   }
 
   private async pullCachedStages(): Promise<TaggedImages> {
@@ -160,6 +161,13 @@ class ContainerBuilder {
     }
 
     return taggedImages;
+  }
+
+  private async publishImages(images: string[]): Promise<void> {
+    for (const image of images) {
+      core.info(`Pushing image [${image}] to registry...`);
+      await this.docker.pushImage(image, { auth: this.targetAuth });
+    }
   }
 }
 
