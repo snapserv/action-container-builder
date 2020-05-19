@@ -3,21 +3,25 @@
 [![Latest Release](https://img.shields.io/github/v/release/snapserv/action-container-builder)](https://github.com/snapserv/action-container-builder/releases)
 [![License](https://img.shields.io/github/license/snapserv/action-container-builder)](https://github.com/snapserv/action-container-builder/blob/master/LICENSE)
 
-This action will build your container images using Docker in a reliable
-and efficient way. Unlike the official
+This action will build and publish your container images using Docker in
+a reliable and efficient way. Unlike the official
 [build-and-push-docker-images](https://github.com/marketplace/actions/build-and-push-docker-images)
 action, this action uses a separate image repository for caching single-
 or multi-layer builds, greatly speeding up your builds and saving
 precious CI resources.
 
-Currently this action only contains a build phase, however it is planned
-in the near future to introduce a publish phase which automatically tags
-and publishes your image based on references or commit hashes.
+Currently this action contains two stages. The build phase builds your
+image using cached layers on a registry, whereas the publish phase
+pushes the built image with all desired tags to the registry.
 
 For the build phase, you will only need to specify your desired image
 repository names along with registry credentials. Container Builder will
 automatically detect all stages in your builds and cache them
 appropriately by pushing them to another image repository.
+
+For the publish phase, you will need to either specify `tags`,
+`tag_with_ref` or `tag_with_sha` as otherwise no image (except from the
+previously built cache layers) are being pushed to your registry.
 
 ## Usage
 
@@ -93,3 +97,17 @@ otherwise Container Builder will be unable to build your image.
 - `build_dockerfile`: Specifies a custom path to the Dockerfile which
   should be built. This defaults to `Dockerfile` and is relative to the
   `build_context`.
+
+### Publish Phase
+
+- `tags`: Comma-separated list of tags which should always be added when
+  publishing the image to your target registry.
+
+- `tag_with_ref`: Automatically tags your image based on the current Git
+  reference. All branch pushes and Git tags are being taken as-is when
+  tagging the image with the exception of a branch called `master`,
+  which gets automatically translated to `latest`. Pull requests are
+  being tagged as `pr-{number}`.
+
+- `tag_with_sha`: Automatically tags your image based on the short Git
+  commit SHA, prefixed with `sha-`.
