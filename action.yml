@@ -30,7 +30,6 @@ inputs:
     required: false
   static_tags:
     description: Tag target image with this comma-separated list of tags
-    default: latest
     required: false
   tag_with_ref:
     description: Tag target image with Git reference

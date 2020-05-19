@@ -1,5 +1,5 @@
 import { AuthData, Docker, TaggedImages } from './docker';
-import { parseBool } from './utils';
+import { GitRefType, parseBool, parseGitRef } from './utils';
 import * as core from '@actions/core';
 import path from 'path';
 import { context } from '@actions/github';
@@ -37,7 +37,7 @@ class ContainerBuilder {
       password: core.getInput('cache_registry_password') || this.targetAuth.password,
     };
 
-    this.staticTags = (core.getInput('tags') || 'latest').split(',');
+    this.staticTags = core.getInput('tags').split(',').filter(Boolean);
     this.tagWithRef = parseBool(core.getInput('tag_with_ref') || 'false');
     this.tagWithSHA = parseBool(core.getInput('tag_with_sha') || 'false');
   }
@@ -129,12 +129,26 @@ class ContainerBuilder {
 
     // Add tag with Git commit hash
     if (this.tagWithSHA && context.sha) {
-      desiredTags.push(context.sha);
+      if (context.sha.length >= 7) {
+        desiredTags.push(context.sha.substring(0, 7));
+      }
     }
 
     // Add tag with Git reference
     if (this.tagWithRef && context.ref) {
-      // TODO: Git reference parsing
+      const ref = parseGitRef(context.ref);
+      switch (ref.type) {
+        case GitRefType.Head:
+          if (ref.name === 'master') desiredTags.push('latest');
+          else desiredTags.push(name);
+          break;
+        case GitRefType.PullRequest:
+          desiredTags.push(`pr-${name}`);
+          break;
+        case GitRefType.Tag:
+          desiredTags.push(name);
+          break;
+      }
     }
 
     // Tag final image with all desired tags

@@ -11470,7 +11470,7 @@ class ContainerBuilder {
             username: core.getInput('cache_registry_username') || this.targetAuth.username,
             password: core.getInput('cache_registry_password') || this.targetAuth.password,
         };
-        this.staticTags = (core.getInput('tags') || 'latest').split(',');
+        this.staticTags = core.getInput('tags').split(',').filter(Boolean);
         this.tagWithRef = utils_1.parseBool(core.getInput('tag_with_ref') || 'false');
         this.tagWithSHA = utils_1.parseBool(core.getInput('tag_with_sha') || 'false');
     }
@@ -11558,10 +11558,27 @@ class ContainerBuilder {
             const desiredTags = [...this.staticTags];
             // Add tag with Git commit hash
             if (this.tagWithSHA && github_1.context.sha) {
-                desiredTags.push(github_1.context.sha);
+                if (github_1.context.sha.length >= 7) {
+                    desiredTags.push(github_1.context.sha.substring(0, 7));
+                }
             }
             // Add tag with Git reference
             if (this.tagWithRef && github_1.context.ref) {
+                const ref = utils_1.parseGitRef(github_1.context.ref);
+                switch (ref.type) {
+                    case utils_1.GitRefType.Head:
+                        if (ref.name === 'master')
+                            desiredTags.push('latest');
+                        else
+                            desiredTags.push(name);
+                        break;
+                    case utils_1.GitRefType.PullRequest:
+                        desiredTags.push(`pr-${name}`);
+                        break;
+                    case utils_1.GitRefType.Tag:
+                        desiredTags.push(name);
+                        break;
+                }
             }
             // Tag final image with all desired tags
             const taggedImages = [];
@@ -22783,7 +22800,14 @@ exports.string = string;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseBool = void 0;
+exports.parseGitRef = exports.parseBool = exports.GitRefType = void 0;
+var GitRefType;
+(function (GitRefType) {
+    GitRefType[GitRefType["Unknown"] = 0] = "Unknown";
+    GitRefType[GitRefType["Head"] = 1] = "Head";
+    GitRefType[GitRefType["PullRequest"] = 2] = "PullRequest";
+    GitRefType[GitRefType["Tag"] = 3] = "Tag";
+})(GitRefType = exports.GitRefType || (exports.GitRefType = {}));
 function parseBool(value) {
     value = value.trim().toLowerCase();
     if (['1', 't', 'true'].includes(value))
@@ -22793,6 +22817,21 @@ function parseBool(value) {
     throw new Error(`could not parse [${value}] as boolean, expected one of: 1, t, true, 0, f, false (case-insensitive)`);
 }
 exports.parseBool = parseBool;
+function parseGitRef(ref) {
+    const [_, type, name] = ref.split('/', 3);
+    if (!type || !name)
+        return { type: GitRefType.Unknown };
+    switch (type) {
+        case 'heads':
+            return { type: GitRefType.Head, name };
+        case 'pull':
+            return { type: GitRefType.PullRequest, name };
+        case 'tags':
+            return { type: GitRefType.Tag, name };
+    }
+    return { type: GitRefType.Unknown };
+}
+exports.parseGitRef = parseGitRef;
 
 
 /***/ }),
