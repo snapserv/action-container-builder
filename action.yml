@@ -10,8 +10,8 @@ inputs:
     description: Path to Dockerfile, relative to repository
     default: Dockerfile
     required: false
-  target_image:
-    description: Desired image repository built by this action, do not specify a tag
+  target_repository:
+    description: Desired image repository where images built by this action get stored
     required: true
   target_registry_username:
     description: Username for build artifact registry
@@ -19,7 +19,7 @@ inputs:
   target_registry_password:
     description: Password for build artifact registry
     required: true
-  cache_image:
+  cache_repository:
     description: Desired cache image repository, defaults to image repository with suffix '-cache'
     required: false
   cache_registry_username:

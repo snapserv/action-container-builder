@@ -47,10 +47,10 @@ jobs:
       - name: Build container image
         uses: snapserv/action-container-builder@master
         with:
-          target_image: my-user/my-image
+          target_repository: my-user/my-image
           target_registry_username: {{ secrets.DOCKER_REGISTRY_USERNAME }}
           target_registry_password: {{ secrets.DOCKER_REGISTRY_PASSWORD }}
-          cache_image: docker.pkg.github.com/${{ github.repo }}/my-image
+          cache_repository: docker.pkg.github.com/${{ github.repo }}/my-image
           cache_registry_username: ${{ github.repository_owner }}
           cache_registry_password: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -62,32 +62,32 @@ otherwise Container Builder will be unable to build your image.
 
 ### Build Phase
 
-- `target_image`: Specifies the desired repository name for the
+- `target_repository`: Specifies the desired repository name for the
   container image which is being built by this action, e.g.
   `my-user/my-image` or `my.docker.registry/my-user/my-image`. While you
   must specify a fully-qualified image repository including the server
   and namespace, you shall **not** specify a tag.
 
 - `target_registry_username`: Specifies the username for authenticating
-  against the registry used by `target_image`. Consult the documentation
-  of your favorite registry to know what you need to specify, however
-  this is equivalent to using `docker login`.
+  against the registry used by `target_repository`. Consult the
+  documentation of your favorite registry to know what you need to
+  specify, however this is equivalent to using `docker login`.
 
 - `target_registry_password`: Specifies the password for authenticating
-  against the registry used by `target_image`. Same remarks as for
+  against the registry used by `target_repository`. Same remarks as for
   `target_registry_username` apply.
 
-- `cache_image`: Overrides the default repository name for the cached
-  container build stages. By default, this will be set to `target_image`
-  suffixed with `-cache`.
+- `cache_repository`: Overrides the default repository name for the
+  cached container build stages. By default, this will be set to
+  `target_repository` suffixed with `-cache`.
 
 - `cache_registry_username`: Specifies the username for authenticating
-  against the registry used by `cache_image`. If not specified, this
-  defaults to using the same value as `target_registry_username`.
+  against the registry used by `cache_repository`. If not specified,
+  this defaults to using the same value as `target_registry_username`.
 
 - `cache_registry_password`: Specifies the password for authenticating
-  against the registry used by `cache_image`. If not specified, this
-  defaults to using the same value as `target_registry_password`.
+  against the registry used by `cache_repository`. If not specified,
+  this defaults to using the same value as `target_registry_password`.
 
 - `build_context`: Specifies the path to the Docker build context,
   relative to the repository. This defaults to `.`, which would include
@@ -111,3 +111,4 @@ otherwise Container Builder will be unable to build your image.
 
 - `tag_with_sha`: Automatically tags your image based on the short Git
   commit SHA, prefixed with `sha-`.
+

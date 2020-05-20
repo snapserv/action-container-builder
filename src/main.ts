@@ -11,9 +11,9 @@ class ContainerBuilder {
   private readonly buildContext: string;
   private readonly buildDockerfile: string;
 
-  private readonly targetImage: string;
+  private readonly targetRepository: string;
   private readonly targetAuth: AuthData;
-  private readonly cacheImage: string;
+  private readonly cacheRepository: string;
   private readonly cacheAuth: AuthData;
 
   private readonly staticTags: string[];
@@ -25,13 +25,13 @@ class ContainerBuilder {
     this.buildContext = core.getInput('build_context') || '.';
     this.buildDockerfile = path.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
 
-    this.targetImage = core.getInput('target_image', { required: true });
+    this.targetRepository = core.getInput('target_repository', { required: true });
     this.targetAuth = {
       username: core.getInput('target_registry_username', { required: true }),
       password: core.getInput('target_registry_password', { required: true }),
     };
 
-    this.cacheImage = core.getInput('cache_image') || `${this.targetImage}-cache`;
+    this.cacheRepository = core.getInput('cache_repository') || `${this.targetRepository}-cache`;
     this.cacheAuth = {
       username: core.getInput('cache_registry_username') || this.targetAuth.username,
       password: core.getInput('cache_registry_password') || this.targetAuth.password,
@@ -53,11 +53,11 @@ class ContainerBuilder {
 
   private async pullCachedStages(): Promise<TaggedImages> {
     try {
-      core.debug(`Attempting to pull all image versions of [${this.cacheImage}]...`);
-      await this.docker.pullImage(this.cacheImage, { auth: this.cacheAuth });
+      core.debug(`Attempting to pull all cached stages from repository [${this.cacheRepository}]...`);
+      await this.docker.pullImage(this.cacheRepository, { auth: this.cacheAuth });
 
-      core.debug(`Analyzing retrieved cache images of [${this.cacheImage}]...`);
-      const stageCache = await this.docker.getImageTags(this.cacheImage);
+      core.debug(`Analyzing retrieved cache images of [${this.cacheRepository}]...`);
+      const stageCache = await this.docker.getImageTags(this.cacheRepository);
       const tags = Object.keys(stageCache);
       core.debug(`Found ${tags.length} previous cache images: ${tags.join(', ')}`);
 
@@ -80,7 +80,7 @@ class ContainerBuilder {
     const targets = await this.docker.parseBuildTargets(this.buildDockerfile);
     for (const target of targets) {
       // Build image for the given target
-      const imageName = `${this.cacheImage}:stage-${target}`;
+      const imageName = `${this.cacheRepository}:stage-${target}`;
       const imageID = await this.docker.buildImage(archive, imageName, { cacheFrom, target });
 
       // Keep reference to built target image and add it to the cache
@@ -90,7 +90,7 @@ class ContainerBuilder {
     }
 
     // Build the final stage of the Dockerfile
-    const imageName = `${this.cacheImage}:final`;
+    const imageName = `${this.cacheRepository}:final`;
     const imageID = await this.docker.buildImage(archive, imageName, { cacheFrom });
 
     // Keep reference to built image
@@ -113,15 +113,15 @@ class ContainerBuilder {
 
     for (const tag of currentTags) {
       if (expectedTags.indexOf(tag) === -1) {
-        core.info(`Found outdated cache image: ${this.cacheImage}:${tag}`);
-        await this.docker.unpublishImage(`${this.cacheImage}:${tag}`, { auth: this.cacheAuth });
+        core.info(`Found outdated cache image: ${this.cacheRepository}:${tag}`);
+        await this.docker.unpublishImage(`${this.cacheRepository}:${tag}`, { auth: this.cacheAuth });
       }
     }
   }
 
   private async buildTargetImage(newImages: ImageHashes): Promise<string[]> {
     // Attempt to find output image of final stage
-    const finalImageName = `${this.cacheImage}:final`;
+    const finalImageName = `${this.cacheRepository}:final`;
     const finalImage = newImages[finalImageName];
     if (!finalImage) throw new Error(`Could not final image build: ${finalImageName}`);
 
@@ -156,9 +156,9 @@ class ContainerBuilder {
     // Tag final image with all desired tags
     const taggedImages = [];
     for (const tag of desiredTags) {
-      core.debug(`Tagging final image as [${this.targetImage}:${tag}]...`);
-      taggedImages.push(`${this.targetImage}:${tag}`);
-      await this.docker.tagImage(finalImage, this.targetImage, tag);
+      core.debug(`Tagging final image as [${this.targetRepository}:${tag}]...`);
+      taggedImages.push(`${this.targetRepository}:${tag}`);
+      await this.docker.tagImage(finalImage, this.targetRepository, tag);
     }
 
     return taggedImages;
