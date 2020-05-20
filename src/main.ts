@@ -8,22 +8,22 @@ type ImageHashes = { [name: string]: string }
 
 class ContainerBuilder {
   private readonly docker: Docker;
-  private readonly buildContext: string;
-  private readonly buildDockerfile: string;
-
   private readonly targetRepository: string;
   private readonly targetAuth: AuthData;
   private readonly cacheRepository: string;
   private readonly cacheAuth: AuthData;
 
+  private readonly enableBuild: boolean;
+  private readonly buildContext: string;
+  private readonly buildDockerfile: string;
+
+  private readonly enablePublish: boolean;
   private readonly staticTags: string[];
   private readonly tagWithRef: boolean;
   private readonly tagWithSHA: boolean;
 
   constructor() {
     this.docker = new Docker();
-    this.buildContext = core.getInput('build_context') || '.';
-    this.buildDockerfile = path.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
 
     this.targetRepository = core.getInput('target_repository', { required: true });
     this.targetAuth = {
@@ -37,18 +37,37 @@ class ContainerBuilder {
       password: core.getInput('cache_registry_password') || this.targetAuth.password,
     };
 
+    this.enableBuild = parseBool(core.getInput('build') || 'false');
+    this.buildContext = core.getInput('build_context') || '.';
+    this.buildDockerfile = path.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
+
+    this.enablePublish = parseBool(core.getInput('publish') || 'true');
     this.staticTags = core.getInput('tags').split(',').filter(Boolean);
     this.tagWithRef = parseBool(core.getInput('tag_with_ref') || 'false');
     this.tagWithSHA = parseBool(core.getInput('tag_with_sha') || 'false');
   }
 
   async run() {
-    const stageCache = await this.pullCachedStages();
-    const newImages = await this.assembleImage(stageCache);
-    await this.pushCachedStages(newImages);
-    await this.cleanCachedStages(stageCache, newImages);
-    const taggedImages = await this.buildTargetImage(newImages);
-    await this.publishImages(taggedImages);
+    let newImages: ImageHashes | null = null;
+
+    if (this.enableBuild) {
+      const stageCache = await this.pullCachedStages();
+      newImages = await this.assembleImage(stageCache);
+      await this.pushCachedStages(newImages);
+      await this.cleanCachedStages(stageCache, newImages);
+    } else {
+      core.debug(`Skipping build phase due to being disabled in configuration`);
+    }
+
+    if (this.enablePublish) {
+      if (newImages) core.debug(`Using previously built image for publishing...`);
+      else newImages = await this.searchPreviousBuild();
+
+      const taggedImages = await this.buildTargetImage(newImages);
+      await this.publishImages(taggedImages);
+    } else {
+      core.debug(`Skipping publish phase due to being disabled in configuration`);
+    }
   }
 
   private async pullCachedStages(): Promise<TaggedImages> {
@@ -117,6 +136,18 @@ class ContainerBuilder {
         await this.docker.unpublishImage(`${this.cacheRepository}:${tag}`, { auth: this.cacheAuth });
       }
     }
+  }
+
+  private async searchPreviousBuild(): Promise<ImageHashes> {
+    core.debug(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
+    const taggedImages = await this.docker.getImageTags(this.cacheRepository);
+
+    const finalImage = taggedImages['final'];
+    const finalImageName = `${this.cacheRepository}:final`;
+    if (!finalImage) throw new Error(`could not find previous local build [${finalImageName}]`);
+
+    core.debug(`Using previous build [${finalImageName}] for publishing`);
+    return { [`${finalImageName}`]: finalImage };
   }
 
   private async buildTargetImage(newImages: ImageHashes): Promise<string[]> {

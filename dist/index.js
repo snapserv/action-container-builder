@@ -11458,8 +11458,6 @@ const github_1 = __webpack_require__(469);
 class ContainerBuilder {
     constructor() {
         this.docker = new docker_1.Docker();
-        this.buildContext = core.getInput('build_context') || '.';
-        this.buildDockerfile = path_1.default.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
         this.targetRepository = core.getInput('target_repository', { required: true });
         this.targetAuth = {
             username: core.getInput('target_registry_username', { required: true }),
@@ -11470,18 +11468,37 @@ class ContainerBuilder {
             username: core.getInput('cache_registry_username') || this.targetAuth.username,
             password: core.getInput('cache_registry_password') || this.targetAuth.password,
         };
+        this.enableBuild = utils_1.parseBool(core.getInput('build') || 'false');
+        this.buildContext = core.getInput('build_context') || '.';
+        this.buildDockerfile = path_1.default.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
+        this.enablePublish = utils_1.parseBool(core.getInput('publish') || 'true');
         this.staticTags = core.getInput('tags').split(',').filter(Boolean);
         this.tagWithRef = utils_1.parseBool(core.getInput('tag_with_ref') || 'false');
         this.tagWithSHA = utils_1.parseBool(core.getInput('tag_with_sha') || 'false');
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            const stageCache = yield this.pullCachedStages();
-            const newImages = yield this.assembleImage(stageCache);
-            yield this.pushCachedStages(newImages);
-            yield this.cleanCachedStages(stageCache, newImages);
-            const taggedImages = yield this.buildTargetImage(newImages);
-            yield this.publishImages(taggedImages);
+            let newImages = null;
+            if (this.enableBuild) {
+                const stageCache = yield this.pullCachedStages();
+                newImages = yield this.assembleImage(stageCache);
+                yield this.pushCachedStages(newImages);
+                yield this.cleanCachedStages(stageCache, newImages);
+            }
+            else {
+                core.debug(`Skipping build phase due to being disabled in configuration`);
+            }
+            if (this.enablePublish) {
+                if (newImages)
+                    core.debug(`Using previously built image for publishing...`);
+                else
+                    newImages = yield this.searchPreviousBuild();
+                const taggedImages = yield this.buildTargetImage(newImages);
+                yield this.publishImages(taggedImages);
+            }
+            else {
+                core.debug(`Skipping publish phase due to being disabled in configuration`);
+            }
         });
     }
     pullCachedStages() {
@@ -11546,6 +11563,18 @@ class ContainerBuilder {
                     yield this.docker.unpublishImage(`${this.cacheRepository}:${tag}`, { auth: this.cacheAuth });
                 }
             }
+        });
+    }
+    searchPreviousBuild() {
+        return __awaiter(this, void 0, void 0, function* () {
+            core.debug(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
+            const taggedImages = yield this.docker.getImageTags(this.cacheRepository);
+            const finalImage = taggedImages['final'];
+            const finalImageName = `${this.cacheRepository}:final`;
+            if (!finalImage)
+                throw new Error(`could not find previous local build [${finalImageName}]`);
+            core.debug(`Using previous build [${finalImageName}] for publishing`);
+            return { [`${finalImageName}`]: finalImage };
         });
     }
     buildTargetImage(newImages) {

@@ -62,6 +62,9 @@ otherwise Container Builder will be unable to build your image.
 
 ### Build Phase
 
+- `build`: Boolean, can be set to `true` or `false`, defaults to `true`.
+  Specifies if the build phase should be executed or skipped.
+
 - `target_repository`: Specifies the desired repository name for the
   container image which is being built by this action, e.g.
   `my-user/my-image` or `my.docker.registry/my-user/my-image`. While you
@@ -99,6 +102,9 @@ otherwise Container Builder will be unable to build your image.
   `build_context`.
 
 ### Publish Phase
+
+- `publish`: Boolean, can be set to `true` or `false`, defaults to
+  `true`. Specifies if the publish phase should be executed or skipped.
 
 - `tags`: Comma-separated list of tags which should always be added when
   publishing the image to your target registry.

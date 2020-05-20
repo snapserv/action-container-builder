@@ -2,6 +2,14 @@ name: Container Builder
 description: Builds container images using Docker in a reliable and efficient way
 author: Pascal Mathis
 inputs:
+  build:
+    description: Enable/disable the build phase of this action
+    default: 'true'
+    required: false
+  publish:
+    description: Enable/disable the publish phase of this action
+    default: 'true'
+    required: false
   build_context:
     description: Path to build context, relative to repository
     default: .
