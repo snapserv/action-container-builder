@@ -109,12 +109,14 @@ otherwise Container Builder will be unable to build your image.
 - `tags`: Comma-separated list of tags which should always be added when
   publishing the image to your target registry.
 
-- `tag_with_ref`: Automatically tags your image based on the current Git
+- `tag_with_ref`: Boolean, can be set to `true` or `false`, defaults to
+  `false`. Automatically tags your image based on the current Git
   reference. All branch pushes and Git tags are being taken as-is when
   tagging the image with the exception of a branch called `master`,
   which gets automatically translated to `latest`. Pull requests are
   being tagged as `pr-{number}`.
 
-- `tag_with_sha`: Automatically tags your image based on the short Git
+- `tag_with_sha`: Boolean, can be set to `true` or `false`, defaults to
+  `false`. Automatically tags your image based on the short Git
   commit SHA, prefixed with `sha-`.
 
