@@ -11494,34 +11494,34 @@ class ContainerBuilder {
                 }
             }
             else {
-                core.debug(`Skipping build phase due to being disabled in configuration`);
+                core.info(`Skipping build phase due to being disabled in configuration`);
             }
             if (this.enablePublish) {
                 if (finalImage)
-                    core.debug(`Using previously built image for publishing...`);
+                    core.info(`Using previously built image for publishing...`);
                 else
                     finalImage = yield this.searchPreviousBuild();
                 const taggedImages = yield this.buildTargetImage(finalImage);
                 yield this.publishImages(taggedImages);
             }
             else {
-                core.debug(`Skipping publish phase due to being disabled in configuration`);
+                core.info(`Skipping publish phase due to being disabled in configuration`);
             }
         });
     }
     pullCachedStages() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                core.debug(`Attempting to pull all cached stages from repository [${this.cacheRepository}]...`);
+                core.info(`Attempting to pull all cached stages from repository [${this.cacheRepository}]...`);
                 yield this.docker.pullImage(this.cacheRepository, { auth: this.cacheAuth });
-                core.debug(`Analyzing retrieved cache images of [${this.cacheRepository}]...`);
+                core.info(`Analyzing retrieved cache images of [${this.cacheRepository}]...`);
                 const stageCache = yield this.docker.getImageTags(this.cacheRepository);
                 const tags = Object.keys(stageCache);
-                core.debug(`Found ${tags.length} previous cache images: ${tags.join(', ')}`);
+                core.info(`Found ${tags.length} previous cache images: ${tags.join(', ')}`);
                 return stageCache;
             }
             catch (e) {
-                core.debug(`Could not retrieve cached stages, continuing without cache: ${e}`);
+                core.info(`Could not retrieve cached stages, continuing without cache: ${e}`);
                 return {};
             }
         });
@@ -11542,21 +11542,21 @@ class ContainerBuilder {
                 // Keep reference to built target image and add it to the cache
                 newImages[imageName] = imageID;
                 cacheFrom.push(imageID);
-                core.debug(`Built multi-stage target [${target}] as [${imageID}]`);
+                core.info(`Built multi-stage target [${target}] as [${imageID}]`);
             }
             // Build the final stage of the Dockerfile
             const imageName = `${this.cacheRepository}:final`;
             const imageID = yield this.docker.buildImage(archive, imageName, { cacheFrom });
             // Keep reference to built image
             newImages[imageName] = imageID;
-            core.debug(`Built final stage [${imageName}] as [${imageID}]`);
+            core.info(`Built final stage [${imageName}] as [${imageID}]`);
             return newImages;
         });
     }
     pushCachedStages(newImages) {
         return __awaiter(this, void 0, void 0, function* () {
             for (const [imageName, imageID] of Object.entries(newImages)) {
-                core.debug(`Pushing cached stage [${imageName}] (${imageID})...`);
+                core.info(`Pushing cached stage [${imageName}] (${imageID})...`);
                 yield this.docker.pushImage(imageName, { auth: this.cacheAuth });
             }
         });
@@ -11575,13 +11575,13 @@ class ContainerBuilder {
     }
     searchPreviousBuild() {
         return __awaiter(this, void 0, void 0, function* () {
-            core.debug(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
+            core.info(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
             const taggedImages = yield this.docker.getImageTags(this.cacheRepository);
             const finalImage = taggedImages['final'];
             const finalImageName = `${this.cacheRepository}:final`;
             if (!finalImage)
                 throw new Error(`could not find previous local build [${finalImageName}]`);
-            core.debug(`Using previous build [${finalImageName}] for publishing`);
+            core.info(`Using previous build [${finalImageName}] for publishing`);
             return finalImage;
         });
     }
@@ -11617,7 +11617,7 @@ class ContainerBuilder {
             // Tag final image with all desired tags
             const taggedImages = [];
             for (const tag of desiredTags) {
-                core.debug(`Tagging final image as [${this.targetRepository}:${tag}]...`);
+                core.info(`Tagging final image as [${this.targetRepository}:${tag}]...`);
                 taggedImages.push(`${this.targetRepository}:${tag}`);
                 yield this.docker.tagImage(finalImage, this.targetRepository, tag);
             }
@@ -13733,7 +13733,7 @@ class Docker {
                 // placeholder image, which saves space and skips this tag in future runs.
                 case 'docker.pkg.github.com':
                 default:
-                    core.debug(`Uploading empty image to [${name}] as GitHub Package Registry does not allow deletes...`);
+                    core.info(`Uploading empty image to [${name}] as GitHub Package Registry does not allow deletes...`);
                     yield this.getPlaceholderImage(name);
                     yield this.pushImage(name, pushOptions);
                     break;
@@ -13777,7 +13777,7 @@ class Docker {
                 }
             }
             catch (e) {
-                core.debug(`Could not gather .dockerignore from context: ${e}`);
+                core.info(`Could not gather .dockerignore from context: ${e}`);
             }
             // Generate list of entries, then create a gzipped tar stream
             const entries = yield fast_glob_1.default('**', { cwd: context, ignore: ignorePatterns });
@@ -13826,11 +13826,11 @@ class Docker {
     getPlaceholderImage(name) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.placeholderImage) {
-                core.debug(`Building placeholder image for [${name}]...`);
+                core.info(`Building placeholder image for [${name}]...`);
                 this.placeholderImage = yield this.buildPlaceholderImage(name);
             }
             else {
-                core.debug(`Reusing placeholder image for [${name}]...`);
+                core.info(`Reusing placeholder image for [${name}]...`);
             }
             const source = this.parseImageName(name);
             yield this.tagImage(this.placeholderImage, source.repository, source.tag || 'latest');
@@ -13856,7 +13856,7 @@ class Docker {
                     lines
                         .map(line => line.trim()) // Trim each line
                         .filter(Boolean) // Remove empty lines from output
-                        .map((line) => core.debug(`stream output: ${line}`)); // Output each line
+                        .map((line) => core.info(`stream output: ${line}`)); // Output each line
                 });
             });
         });

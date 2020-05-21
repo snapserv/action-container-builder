@@ -133,7 +133,7 @@ export class Docker {
       // placeholder image, which saves space and skips this tag in future runs.
       case 'docker.pkg.github.com':
       default:
-        core.debug(`Uploading empty image to [${name}] as GitHub Package Registry does not allow deletes...`);
+        core.info(`Uploading empty image to [${name}] as GitHub Package Registry does not allow deletes...`);
         await this.getPlaceholderImage(name);
         await this.pushImage(name, pushOptions);
         break;
@@ -173,7 +173,7 @@ export class Docker {
         ignorePatterns.push(line);
       }
     } catch (e) {
-      core.debug(`Could not gather .dockerignore from context: ${e}`);
+      core.info(`Could not gather .dockerignore from context: ${e}`);
     }
 
     // Generate list of entries, then create a gzipped tar stream
@@ -223,10 +223,10 @@ export class Docker {
 
   private async getPlaceholderImage(name: string): Promise<void> {
     if (!this.placeholderImage) {
-      core.debug(`Building placeholder image for [${name}]...`);
+      core.info(`Building placeholder image for [${name}]...`);
       this.placeholderImage = await this.buildPlaceholderImage(name);
     } else {
-      core.debug(`Reusing placeholder image for [${name}]...`);
+      core.info(`Reusing placeholder image for [${name}]...`);
     }
 
     const source = this.parseImageName(name);
@@ -254,7 +254,7 @@ export class Docker {
         lines
           .map(line => line.trim()) // Trim each line
           .filter(Boolean) // Remove empty lines from output
-          .map((line: string) => core.debug(`stream output: ${line}`)); // Output each line
+          .map((line: string) => core.info(`stream output: ${line}`)); // Output each line
       });
     });
   }

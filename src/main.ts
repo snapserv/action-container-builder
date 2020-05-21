@@ -64,33 +64,33 @@ class ContainerBuilder {
         throw new Error(`Could not final image output from build: ${finalImageName}`);
       }
     } else {
-      core.debug(`Skipping build phase due to being disabled in configuration`);
+      core.info(`Skipping build phase due to being disabled in configuration`);
     }
 
     if (this.enablePublish) {
-      if (finalImage) core.debug(`Using previously built image for publishing...`);
+      if (finalImage) core.info(`Using previously built image for publishing...`);
       else finalImage = await this.searchPreviousBuild();
 
       const taggedImages = await this.buildTargetImage(finalImage);
       await this.publishImages(taggedImages);
     } else {
-      core.debug(`Skipping publish phase due to being disabled in configuration`);
+      core.info(`Skipping publish phase due to being disabled in configuration`);
     }
   }
 
   private async pullCachedStages(): Promise<TaggedImages> {
     try {
-      core.debug(`Attempting to pull all cached stages from repository [${this.cacheRepository}]...`);
+      core.info(`Attempting to pull all cached stages from repository [${this.cacheRepository}]...`);
       await this.docker.pullImage(this.cacheRepository, { auth: this.cacheAuth });
 
-      core.debug(`Analyzing retrieved cache images of [${this.cacheRepository}]...`);
+      core.info(`Analyzing retrieved cache images of [${this.cacheRepository}]...`);
       const stageCache = await this.docker.getImageTags(this.cacheRepository);
       const tags = Object.keys(stageCache);
-      core.debug(`Found ${tags.length} previous cache images: ${tags.join(', ')}`);
+      core.info(`Found ${tags.length} previous cache images: ${tags.join(', ')}`);
 
       return stageCache;
     } catch (e) {
-      core.debug(`Could not retrieve cached stages, continuing without cache: ${e}`);
+      core.info(`Could not retrieve cached stages, continuing without cache: ${e}`);
       return {};
     }
   }
@@ -113,7 +113,7 @@ class ContainerBuilder {
       // Keep reference to built target image and add it to the cache
       newImages[imageName] = imageID;
       cacheFrom.push(imageID);
-      core.debug(`Built multi-stage target [${target}] as [${imageID}]`);
+      core.info(`Built multi-stage target [${target}] as [${imageID}]`);
     }
 
     // Build the final stage of the Dockerfile
@@ -122,14 +122,14 @@ class ContainerBuilder {
 
     // Keep reference to built image
     newImages[imageName] = imageID;
-    core.debug(`Built final stage [${imageName}] as [${imageID}]`);
+    core.info(`Built final stage [${imageName}] as [${imageID}]`);
 
     return newImages;
   }
 
   private async pushCachedStages(newImages: ImageHashes): Promise<void> {
     for (const [imageName, imageID] of Object.entries(newImages)) {
-      core.debug(`Pushing cached stage [${imageName}] (${imageID})...`);
+      core.info(`Pushing cached stage [${imageName}] (${imageID})...`);
       await this.docker.pushImage(imageName, { auth: this.cacheAuth });
     }
   }
@@ -147,14 +147,14 @@ class ContainerBuilder {
   }
 
   private async searchPreviousBuild(): Promise<string> {
-    core.debug(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
+    core.info(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
     const taggedImages = await this.docker.getImageTags(this.cacheRepository);
 
     const finalImage = taggedImages['final'];
     const finalImageName = `${this.cacheRepository}:final`;
     if (!finalImage) throw new Error(`could not find previous local build [${finalImageName}]`);
 
-    core.debug(`Using previous build [${finalImageName}] for publishing`);
+    core.info(`Using previous build [${finalImageName}] for publishing`);
     return finalImage;
   }
 
@@ -190,7 +190,7 @@ class ContainerBuilder {
     // Tag final image with all desired tags
     const taggedImages = [];
     for (const tag of desiredTags) {
-      core.debug(`Tagging final image as [${this.targetRepository}:${tag}]...`);
+      core.info(`Tagging final image as [${this.targetRepository}:${tag}]...`);
       taggedImages.push(`${this.targetRepository}:${tag}`);
       await this.docker.tagImage(finalImage, this.targetRepository, tag);
     }
