@@ -48,22 +48,30 @@ class ContainerBuilder {
   }
 
   async run() {
-    let newImages: ImageHashes | null = null;
+    let finalImage: string | null = null;
 
     if (this.enableBuild) {
       const stageCache = await this.pullCachedStages();
-      newImages = await this.assembleImage(stageCache);
+      const newImages = await this.assembleImage(stageCache);
       await this.pushCachedStages(newImages);
       await this.cleanCachedStages(stageCache, newImages);
+
+      const finalImageName = `${this.cacheRepository}:final`;
+      if (newImages[finalImageName]) {
+        finalImage = newImages[finalImageName];
+        core.setOutput('build_output', finalImageName);
+      } else {
+        throw new Error(`Could not final image output from build: ${finalImageName}`);
+      }
     } else {
       core.debug(`Skipping build phase due to being disabled in configuration`);
     }
 
     if (this.enablePublish) {
-      if (newImages) core.debug(`Using previously built image for publishing...`);
-      else newImages = await this.searchPreviousBuild();
+      if (finalImage) core.debug(`Using previously built image for publishing...`);
+      else finalImage = await this.searchPreviousBuild();
 
-      const taggedImages = await this.buildTargetImage(newImages);
+      const taggedImages = await this.buildTargetImage(finalImage);
       await this.publishImages(taggedImages);
     } else {
       core.debug(`Skipping publish phase due to being disabled in configuration`);
@@ -138,7 +146,7 @@ class ContainerBuilder {
     }
   }
 
-  private async searchPreviousBuild(): Promise<ImageHashes> {
+  private async searchPreviousBuild(): Promise<string> {
     core.debug(`Attempting to search for previous local build in repository [${this.cacheRepository}]...`);
     const taggedImages = await this.docker.getImageTags(this.cacheRepository);
 
@@ -147,15 +155,10 @@ class ContainerBuilder {
     if (!finalImage) throw new Error(`could not find previous local build [${finalImageName}]`);
 
     core.debug(`Using previous build [${finalImageName}] for publishing`);
-    return { [`${finalImageName}`]: finalImage };
+    return finalImage;
   }
 
-  private async buildTargetImage(newImages: ImageHashes): Promise<string[]> {
-    // Attempt to find output image of final stage
-    const finalImageName = `${this.cacheRepository}:final`;
-    const finalImage = newImages[finalImageName];
-    if (!finalImage) throw new Error(`Could not final image build: ${finalImageName}`);
-
+  private async buildTargetImage(finalImage: string): Promise<string[]> {
     // Prepare list of desired image tags
     const desiredTags = [...this.staticTags];
 

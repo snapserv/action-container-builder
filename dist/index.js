@@ -11478,22 +11478,30 @@ class ContainerBuilder {
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
-            let newImages = null;
+            let finalImage = null;
             if (this.enableBuild) {
                 const stageCache = yield this.pullCachedStages();
-                newImages = yield this.assembleImage(stageCache);
+                const newImages = yield this.assembleImage(stageCache);
                 yield this.pushCachedStages(newImages);
                 yield this.cleanCachedStages(stageCache, newImages);
+                const finalImageName = `${this.cacheRepository}:final`;
+                if (newImages[finalImageName]) {
+                    finalImage = newImages[finalImageName];
+                    core.setOutput('build_output', finalImageName);
+                }
+                else {
+                    throw new Error(`Could not final image output from build: ${finalImageName}`);
+                }
             }
             else {
                 core.debug(`Skipping build phase due to being disabled in configuration`);
             }
             if (this.enablePublish) {
-                if (newImages)
+                if (finalImage)
                     core.debug(`Using previously built image for publishing...`);
                 else
-                    newImages = yield this.searchPreviousBuild();
-                const taggedImages = yield this.buildTargetImage(newImages);
+                    finalImage = yield this.searchPreviousBuild();
+                const taggedImages = yield this.buildTargetImage(finalImage);
                 yield this.publishImages(taggedImages);
             }
             else {
@@ -11574,16 +11582,11 @@ class ContainerBuilder {
             if (!finalImage)
                 throw new Error(`could not find previous local build [${finalImageName}]`);
             core.debug(`Using previous build [${finalImageName}] for publishing`);
-            return { [`${finalImageName}`]: finalImage };
+            return finalImage;
         });
     }
-    buildTargetImage(newImages) {
+    buildTargetImage(finalImage) {
         return __awaiter(this, void 0, void 0, function* () {
-            // Attempt to find output image of final stage
-            const finalImageName = `${this.cacheRepository}:final`;
-            const finalImage = newImages[finalImageName];
-            if (!finalImage)
-                throw new Error(`Could not final image build: ${finalImageName}`);
             // Prepare list of desired image tags
             const desiredTags = [...this.staticTags];
             // Add tag with Git commit hash

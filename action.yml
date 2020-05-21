@@ -47,6 +47,9 @@ inputs:
     description: Tag target image with Git commit hash
     default: 'false'
     required: false
+outputs:
+  build_output:
+    description: Name of image (repository + tag) created during build phase
 runs:
   using: node12
   main: dist/index.js

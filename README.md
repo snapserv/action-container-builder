@@ -120,3 +120,12 @@ otherwise Container Builder will be unable to build your image.
   `false`. Automatically tags your image based on the short Git
   commit SHA, prefixed with `sha-`.
 
+## Output
+
+This action produces these outputs which can be used for further
+processing in a different GitHub action:
+
+- `build_output` contains the name of the image which was created by the
+  build phase. If the build did not succeed or was skipped, this output
+  will be empty. If you want to test the final image before triggering
+  the publish phase, you can use this image name for running your tests.
