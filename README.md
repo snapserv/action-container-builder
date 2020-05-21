@@ -50,7 +50,7 @@ jobs:
           target_repository: my-user/my-image
           target_registry_username: {{ secrets.DOCKER_REGISTRY_USERNAME }}
           target_registry_password: {{ secrets.DOCKER_REGISTRY_PASSWORD }}
-          cache_repository: docker.pkg.github.com/${{ github.repo }}/my-image
+          cache_repository: docker.pkg.github.com/${{ github.repository }}/my-image
           cache_registry_username: ${{ github.repository_owner }}
           cache_registry_password: ${{ secrets.GITHUB_TOKEN }}
 ```
