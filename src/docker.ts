@@ -18,6 +18,8 @@ export type AuthData = {
   password: string;
 }
 
+type ErrorFilter = (err: string) => boolean
+
 type StreamData = { [key: string]: any };
 
 type ImageSource = {
@@ -59,11 +61,21 @@ export class Docker {
   }
 
   async pullImage(name: string, options: PullImageOptions): Promise<void> {
+    // GitHub Package Registry returns a meta version/tag called 'docker-base-layer' which has no valid manifest,
+    // causing the image pull process to return a stream error. Until this has been fixed upstream, we ignore this
+    // by filtering and therefor ignoring the specific error.
+    // https://github.community/t5/GitHub-Actions/GitHub-Package-Registry-tag-docker-base-layer-is-missing-a/td-p/43338
+    const imageSource = this.parseImageName(name);
+    const imageName = imageSource.image.split('/').pop();
+    const errorFilter = (err: string): boolean => {
+      return !err.includes(`image reference ${imageName}:docker-base-layer not found`);
+    };
+
     const stream = await this.dockerode.createImage({
       fromImage: name,
       ...(options.auth && { authconfig: this.buildAuthConfig(name, options.auth) }),
     });
-    await this.waitForCompletion(stream);
+    await this.waitForCompletion(stream, errorFilter);
   }
 
   async getImageTags(name: string): Promise<TaggedImages> {
@@ -203,11 +215,11 @@ export class Docker {
     }
 
     function splitRegistryImage(image: string): { registry: string, image: string } {
-      const parts = image.split('/', 2);
+      const parts = image.split('/');
       if (parts.length == 1 || (!parts[0].includes('.') && !parts[0].includes(':') && parts[0] != 'localhost')) {
         return { registry: 'docker.io', image: image };
       } else {
-        return { registry: parts[0], image: parts[1] };
+        return { registry: parts[0], image: parts.slice(1).join('/') };
       }
     }
 
@@ -234,7 +246,7 @@ export class Docker {
     await this.tagImage(this.placeholderImage, source.repository, source.tag || 'latest');
   }
 
-  private async waitForCompletion(stream: NodeJS.ReadableStream): Promise<StreamData[]> {
+  private async waitForCompletion(stream: NodeJS.ReadableStream, errorFilter?: ErrorFilter): Promise<StreamData[]> {
     return new Promise((resolve, reject) => {
       let previousLine: string = '';
       let objectStatus: { [id: string]: string } = {};
@@ -242,7 +254,11 @@ export class Docker {
       this.dockerode.modem.followProgress(stream, (err: Error, res: StreamData[]) => {
         if (err) return reject(err);
 
-        const streamErr = res.find(x => x['error']);
+        const streamErr = res.find(x => {
+          if (!x['error']) return false;
+          if (!errorFilter) return true;
+          return errorFilter(x['error']);
+        });
         if (streamErr) return reject(streamErr['error']);
 
         return resolve(res);

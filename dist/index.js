@@ -13669,8 +13669,17 @@ class Docker {
     }
     pullImage(name, options) {
         return __awaiter(this, void 0, void 0, function* () {
+            // GitHub Package Registry returns a meta version/tag called 'docker-base-layer' which has no valid manifest,
+            // causing the image pull process to return a stream error. Until this has been fixed upstream, we ignore this
+            // by filtering and therefor ignoring the specific error.
+            // https://github.community/t5/GitHub-Actions/GitHub-Package-Registry-tag-docker-base-layer-is-missing-a/td-p/43338
+            const imageSource = this.parseImageName(name);
+            const imageName = imageSource.image.split('/').pop();
+            const errorFilter = (err) => {
+                return !err.includes(`image reference ${imageName}:docker-base-layer not found`);
+            };
             const stream = yield this.dockerode.createImage(Object.assign({ fromImage: name }, (options.auth && { authconfig: this.buildAuthConfig(name, options.auth) })));
-            yield this.waitForCompletion(stream);
+            yield this.waitForCompletion(stream, errorFilter);
         });
     }
     getImageTags(name) {
@@ -13808,12 +13817,12 @@ class Docker {
                 return { repository: value };
         }
         function splitRegistryImage(image) {
-            const parts = image.split('/', 2);
+            const parts = image.split('/');
             if (parts.length == 1 || (!parts[0].includes('.') && !parts[0].includes(':') && parts[0] != 'localhost')) {
                 return { registry: 'docker.io', image: image };
             }
             else {
-                return { registry: parts[0], image: parts[1] };
+                return { registry: parts[0], image: parts.slice(1).join('/') };
             }
         }
         const { repository, tag } = splitRepositoryTag(name);
@@ -13838,7 +13847,7 @@ class Docker {
             yield this.tagImage(this.placeholderImage, source.repository, source.tag || 'latest');
         });
     }
-    waitForCompletion(stream) {
+    waitForCompletion(stream, errorFilter) {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => {
                 let previousLine = '';
@@ -13846,7 +13855,13 @@ class Docker {
                 this.dockerode.modem.followProgress(stream, (err, res) => {
                     if (err)
                         return reject(err);
-                    const streamErr = res.find(x => x['error']);
+                    const streamErr = res.find(x => {
+                        if (!x['error'])
+                            return false;
+                        if (!errorFilter)
+                            return true;
+                        return errorFilter(x['error']);
+                    });
                     if (streamErr)
                         return reject(streamErr['error']);
                     return resolve(res);
