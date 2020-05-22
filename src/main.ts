@@ -207,5 +207,5 @@ class ContainerBuilder {
 }
 
 new ContainerBuilder().run().catch(err => {
-  core.error(err);
+  core.setFailed(err);
 });
