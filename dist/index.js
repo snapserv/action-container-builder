@@ -11481,6 +11481,7 @@ class ContainerBuilder {
             let finalImage = null;
             if (this.enableBuild) {
                 const stageCache = yield this.pullCachedStages();
+                throw new Error('abort');
                 const newImages = yield this.assembleImage(stageCache);
                 yield this.pushCachedStages(newImages);
                 yield this.cleanCachedStages(stageCache, newImages);
@@ -13668,7 +13669,8 @@ class Docker {
     }
     pullImage(name, options) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.dockerode.createImage(Object.assign({ fromImage: name }, (options.auth && { authconfig: this.buildAuthConfig(name, options.auth) })));
+            const stream = yield this.dockerode.createImage(Object.assign({ fromImage: name }, (options.auth && { authconfig: this.buildAuthConfig(name, options.auth) })));
+            yield this.waitForCompletion(stream);
         });
     }
     getImageTags(name) {
@@ -13840,6 +13842,7 @@ class Docker {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => {
                 let previousLine = '';
+                let objectStatus = {};
                 this.dockerode.modem.followProgress(stream, (err, res) => {
                     if (err)
                         return reject(err);
@@ -13848,9 +13851,19 @@ class Docker {
                         return reject(streamErr['error']);
                     return resolve(res);
                 }, (data) => {
-                    if (!data.stream)
+                    let payload = null;
+                    if (data.stream) {
+                        payload = data.stream;
+                    }
+                    else if (data.id && data.status) {
+                        if (objectStatus[data.id] === data.status)
+                            return;
+                        objectStatus[data.id] = data.status;
+                        payload = `status of [${data.id}] changed to [${data.status}]\n`;
+                    }
+                    if (!payload)
                         return;
-                    const output = previousLine + data.stream.toString();
+                    const output = previousLine + payload.toString();
                     const lines = output.replace(/(\r\n|\r|\n)+/gm, '\n').split('\n');
                     previousLine = lines.pop() || '';
                     lines

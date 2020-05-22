@@ -52,6 +52,7 @@ class ContainerBuilder {
 
     if (this.enableBuild) {
       const stageCache = await this.pullCachedStages();
+      throw new Error('abort');
       const newImages = await this.assembleImage(stageCache);
       await this.pushCachedStages(newImages);
       await this.cleanCachedStages(stageCache, newImages);

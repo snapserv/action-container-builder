@@ -59,10 +59,11 @@ export class Docker {
   }
 
   async pullImage(name: string, options: PullImageOptions): Promise<void> {
-    await this.dockerode.createImage({
+    const stream = await this.dockerode.createImage({
       fromImage: name,
       ...(options.auth && { authconfig: this.buildAuthConfig(name, options.auth) }),
     });
+    await this.waitForCompletion(stream);
   }
 
   async getImageTags(name: string): Promise<TaggedImages> {
@@ -236,6 +237,7 @@ export class Docker {
   private async waitForCompletion(stream: NodeJS.ReadableStream): Promise<StreamData[]> {
     return new Promise((resolve, reject) => {
       let previousLine: string = '';
+      let objectStatus: { [id: string]: string } = {};
 
       this.dockerode.modem.followProgress(stream, (err: Error, res: StreamData[]) => {
         if (err) return reject(err);
@@ -245,9 +247,17 @@ export class Docker {
 
         return resolve(res);
       }, (data: StreamData) => {
-        if (!data.stream) return;
+        let payload: string | null = null;
+        if (data.stream) {
+          payload = data.stream;
+        } else if (data.id && data.status) {
+          if (objectStatus[data.id] === data.status) return;
+          objectStatus[data.id] = data.status;
+          payload = `status of [${data.id}] changed to [${data.status}]\n`;
+        }
+        if (!payload) return;
 
-        const output = previousLine + data.stream.toString();
+        const output = previousLine + payload.toString();
         const lines = output.replace(/(\r\n|\r|\n)+/gm, '\n').split('\n');
         previousLine = lines.pop() || '';
 
