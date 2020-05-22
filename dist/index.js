@@ -11481,7 +11481,6 @@ class ContainerBuilder {
             let finalImage = null;
             if (this.enableBuild) {
                 const stageCache = yield this.pullCachedStages();
-                throw new Error('abort');
                 const newImages = yield this.assembleImage(stageCache);
                 yield this.pushCachedStages(newImages);
                 yield this.cleanCachedStages(stageCache, newImages);
