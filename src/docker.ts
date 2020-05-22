@@ -133,7 +133,7 @@ export class Docker {
       // placeholder image, which saves space and skips this tag in future runs.
       case 'docker.pkg.github.com':
       default:
-        core.info(`Uploading empty image to [${name}] as GitHub Package Registry does not allow deletes...`);
+        core.info(`Uploading empty image to [${name}] as registry does not support deletes...`);
         await this.getPlaceholderImage(name);
         await this.pushImage(name, pushOptions);
         break;
