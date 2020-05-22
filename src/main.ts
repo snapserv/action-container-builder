@@ -107,17 +107,19 @@ class ContainerBuilder {
     const targets = await this.docker.parseBuildTargets(this.buildDockerfile);
     for (const target of targets) {
       // Build image for the given target
+      core.info(`Building multi-stage target [${target}] with caches [${cacheFrom.join(', ')}]...`);
       const imageName = `${this.cacheRepository}:stage-${target}`;
       const imageID = await this.docker.buildImage(archive, imageName, { cacheFrom, target });
 
       // Keep reference to built target image and add it to the cache
       newImages[imageName] = imageID;
-      cacheFrom.push(imageID);
+      cacheFrom.unshift(imageID);
       core.info(`Built multi-stage target [${target}] as [${imageID}]`);
     }
 
     // Build the final stage of the Dockerfile
     const imageName = `${this.cacheRepository}:final`;
+    core.info(`Building final stage [${imageName}] with caches [${cacheFrom.join(', ')}]...`);
     const imageID = await this.docker.buildImage(archive, imageName, { cacheFrom });
 
     // Keep reference to built image
