@@ -37,7 +37,7 @@ class ContainerBuilder {
       password: core.getInput('cache_registry_password') || this.targetAuth.password,
     };
 
-    this.enableBuild = parseBool(core.getInput('build') || 'false');
+    this.enableBuild = parseBool(core.getInput('build') || 'true');
     this.buildContext = core.getInput('build_context') || '.';
     this.buildDockerfile = path.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
 

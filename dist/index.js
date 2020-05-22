@@ -11468,7 +11468,7 @@ class ContainerBuilder {
             username: core.getInput('cache_registry_username') || this.targetAuth.username,
             password: core.getInput('cache_registry_password') || this.targetAuth.password,
         };
-        this.enableBuild = utils_1.parseBool(core.getInput('build') || 'false');
+        this.enableBuild = utils_1.parseBool(core.getInput('build') || 'true');
         this.buildContext = core.getInput('build_context') || '.';
         this.buildDockerfile = path_1.default.join(this.buildContext, core.getInput('build_dockerfile') || 'Dockerfile');
         this.enablePublish = utils_1.parseBool(core.getInput('publish') || 'true');
