@@ -18,7 +18,7 @@ jobs:
       - name: Release new versions using TagBot
         uses: snapserv/action-autotagbot@master
         with:
-          api_token: '${{ secrets.GITHUB_TOKEN }}'
+          api_token: '${{ secrets.SNAPSERV_BOT_TOKEN }}'
           source_file: 'package.json'
           version_pattern: '"version"\s*:\s*"(?<version>[0-9.]+)"'
           tag_format: 'v{version}'
