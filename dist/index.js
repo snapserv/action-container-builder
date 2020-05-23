@@ -11605,14 +11605,16 @@ class ContainerBuilder {
                     case utils_1.GitRefType.Head:
                         if (ref.name === 'master')
                             desiredTags.push('latest');
-                        else
-                            desiredTags.push(name);
+                        else if (ref.name)
+                            desiredTags.push(ref.name);
                         break;
                     case utils_1.GitRefType.PullRequest:
-                        desiredTags.push(`pr-${name}`);
+                        if (ref.name)
+                            desiredTags.push(`pr-${ref.name}`);
                         break;
                     case utils_1.GitRefType.Tag:
-                        desiredTags.push(name);
+                        if (ref.name)
+                            desiredTags.push(name);
                         break;
                 }
             }
