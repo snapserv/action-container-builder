@@ -1,6 +1,6 @@
 {
   "name": "action-container-builder",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Builds container images using Docker in a reliable and efficient way",
   "main": "lib/main.js",
   "scripts": {
