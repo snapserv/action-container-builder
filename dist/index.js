@@ -11614,7 +11614,7 @@ class ContainerBuilder {
                         break;
                     case utils_1.GitRefType.Tag:
                         if (ref.name)
-                            desiredTags.push(name);
+                            desiredTags.push(ref.name);
                         break;
                 }
             }

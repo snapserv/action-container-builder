@@ -184,7 +184,7 @@ class ContainerBuilder {
           if (ref.name) desiredTags.push(`pr-${ref.name}`);
           break;
         case GitRefType.Tag:
-          if (ref.name) desiredTags.push(name);
+          if (ref.name) desiredTags.push(ref.name);
           break;
       }
     }
