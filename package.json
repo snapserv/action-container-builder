@@ -25,7 +25,7 @@
   "author": "Pascal Mathis",
   "license": "GPL-3.0-or-later",
   "dependencies": {
-    "@actions/core": "^1.2.4",
+    "@actions/core": "^1.9.1",
     "@actions/github": "^2.2.0",
     "dockerode": "^3.2.0",
     "fast-glob": "^3.2.2",
